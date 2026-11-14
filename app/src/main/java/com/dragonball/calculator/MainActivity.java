@@ -4,23 +4,22 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.View;
-import android.widget.Button;
-import android.widget.LinearLayout;
-import android.widget.TextView;
+import android.widget.*;
 import android.widget.GridLayout;
-import android.graphics.drawable.GradientDrawable;
 
 public class MainActivity extends Activity {
 
     TextView display;
     String current = "";
+    double firstNumber = 0;
     String operator = "";
-    double first = 0;
+    boolean newNumber = true;
 
-    int orange = Color.rgb(255, 145, 0);
-    int dark = Color.rgb(20, 20, 28);
+    int orange = Color.rgb(255, 135, 20);
+    int blue = Color.rgb(20, 110, 220);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,164 +27,259 @@ public class MainActivity extends Activity {
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(18, 25, 18, 18);
-        root.setBackgroundColor(dark);
+        root.setPadding(12, 12, 12, 12);
+        root.setBackgroundColor(Color.rgb(12, 15, 30));
 
-        TextView title = new TextView(this);
-        title.setText("🐉 DRAGON BALL");
-        title.setTextSize(25);
-        title.setTextColor(orange);
-        title.setTypeface(null, Typeface.BOLD);
-        title.setGravity(Gravity.CENTER);
-        root.addView(title);
+        // خلفية Dragon Ball
+        FrameLayout header = new FrameLayout(this);
 
-        TextView subtitle = new TextView(this);
-        subtitle.setText("ULTIMATE CALCULATOR");
-        subtitle.setTextColor(Color.LTGRAY);
-        subtitle.setTextSize(12);
-        subtitle.setGravity(Gravity.CENTER);
-        root.addView(subtitle);
+        ImageView background = new ImageView(this);
+        int headerId = getResources().getIdentifier(
+                "dragon_header", "drawable", getPackageName());
 
-        display = new TextView(this);
-        display.setText("0");
-        display.setTextColor(Color.WHITE);
-        display.setTextSize(38);
-        display.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
-        display.setPadding(15, 20, 15, 20);
-
-        LinearLayout.LayoutParams dp =
-            new LinearLayout.LayoutParams(-1, 0, 1);
-
-        dp.setMargins(0, 25, 0, 20);
-        root.addView(display, dp);
-
-        String[][] keys = {
-            {"C", "DEL", "%", "÷"},
-            {"7", "8", "9", "×"},
-            {"4", "5", "6", "−"},
-            {"1", "2", "3", "+"},
-            {"00", "0", ".", "="}
-        };
-
-        GridLayout grid = new GridLayout(this);
-        grid.setColumnCount(4);
-        grid.setRowCount(5);
-
-        for (String[] row : keys) {
-            for (String key : row) {
-                Button button = new Button(this);
-                button.setText(key);
-                button.setTextSize(20);
-                button.setTypeface(null, Typeface.BOLD);
-                button.setTextColor(Color.WHITE);
-
-                GradientDrawable shape = new GradientDrawable();
-                shape.setCornerRadius(25);
-
-                if (key.matches("[0-9.]+")) {
-                    shape.setColor(Color.rgb(45, 45, 58));
-                } else {
-                    shape.setColor(orange);
-                    button.setTextColor(Color.BLACK);
-                }
-
-                button.setBackground(shape);
-
-                GridLayout.LayoutParams params =
-                    new GridLayout.LayoutParams();
-
-                params.width = 0;
-                params.height = 0;
-                params.columnSpec = GridLayout.spec(
-                    GridLayout.UNDEFINED, 1f);
-                params.rowSpec = GridLayout.spec(
-                    GridLayout.UNDEFINED, 1f);
-
-                params.setMargins(5, 5, 5, 5);
-                grid.addView(button, params);
-
-                button.setOnClickListener(v -> press(key));
-            }
+        if (headerId != 0) {
+            background.setImageResource(headerId);
         }
 
-        root.addView(grid, new LinearLayout.LayoutParams(-1, 0, 3));
+        background.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        header.addView(background,
+                new FrameLayout.LayoutParams(-1, -1));
+
+        TextView title = new TextView(this);
+        title.setText("DRAGON BALL");
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(28);
+        title.setTypeface(null, Typeface.BOLD);
+        title.setGravity(Gravity.CENTER);
+        title.setShadowLayer(12, 0, 0, orange);
+
+        header.addView(title,
+                new FrameLayout.LayoutParams(-1, -1));
+
+        root.addView(header,
+                new LinearLayout.LayoutParams(-1, 150));
+
+        // شاشة الآلة الحاسبة
+        display = new TextView(this);
+        display.setText("0");
+        display.setTextSize(34);
+        display.setTextColor(Color.WHITE);
+        display.setGravity(Gravity.CENTER_VERTICAL | Gravity.RIGHT);
+        display.setPadding(15, 10, 15, 10);
+        display.setBackground(makeBackground(
+                Color.rgb(20, 25, 45), orange));
+
+        LinearLayout.LayoutParams displayParams =
+                new LinearLayout.LayoutParams(-1, 85);
+
+        displayParams.setMargins(0, 15, 0, 15);
+        root.addView(display, displayParams);
+
+        // لوحة الأزرار
+        GridLayout grid = new GridLayout(this);
+        grid.setColumnCount(4);
+        grid.setRowCount(4);
+
+        String[] buttons = {
+                "7", "8", "9", "÷",
+                "4", "5", "6", "×",
+                "1", "2", "3", "-",
+                "C", "0", "=", "+"
+        };
+
+        for (String text : buttons) {
+
+            FrameLayout button = new FrameLayout(this);
+
+            int color = isOperator(text)
+                    ? blue : orange;
+
+            button.setBackground(makeBackground(
+                    Color.rgb(25, 30, 50), color));
+
+            GridLayout.LayoutParams params =
+                    new GridLayout.LayoutParams();
+
+            params.width = 0;
+            params.height = 0;
+            params.columnSpec =
+                    GridLayout.spec(GridLayout.UNDEFINED, 1f);
+            params.rowSpec =
+                    GridLayout.spec(GridLayout.UNDEFINED, 1f);
+
+            params.setMargins(5, 5, 5, 5);
+
+            ImageView character = new ImageView(this);
+
+            if (text.matches("[0-9]")) {
+
+                int imageId = getResources().getIdentifier(
+                        "char_" + text,
+                        "drawable",
+                        getPackageName());
+
+                if (imageId != 0) {
+                    character.setImageResource(imageId);
+                }
+
+                character.setScaleType(
+                        ImageView.ScaleType.CENTER_CROP);
+
+                button.addView(character,
+                        new FrameLayout.LayoutParams(-1, -1));
+            }
+
+            TextView label = new TextView(this);
+            label.setText(text);
+            label.setTextSize(25);
+            label.setTextColor(Color.WHITE);
+            label.setTypeface(null, Typeface.BOLD);
+            label.setGravity(Gravity.CENTER);
+            label.setShadowLayer(8, 2, 2, Color.BLACK);
+
+            FrameLayout.LayoutParams labelParams =
+                    new FrameLayout.LayoutParams(-1, -1);
+
+            button.addView(label, labelParams);
+
+            button.setElevation(8);
+
+            button.setOnClickListener(v -> {
+
+                v.animate()
+                        .scaleX(0.90f)
+                        .scaleY(0.90f)
+                        .setDuration(80)
+                        .withEndAction(() ->
+                                v.animate()
+                                        .scaleX(1f)
+                                        .scaleY(1f)
+                                        .setDuration(100)
+                                        .start())
+                        .start();
+
+                handleClick(text);
+            });
+
+            grid.addView(button, params);
+        }
+
+        root.addView(grid,
+                new LinearLayout.LayoutParams(-1, 0, 1));
+
+        TextView footer = new TextView(this);
+        footer.setText("POWERED BY DRAGON BALL ⚡");
+        footer.setTextColor(orange);
+        footer.setGravity(Gravity.CENTER);
+        footer.setTextSize(13);
+        footer.setPadding(0, 10, 0, 5);
+
+        root.addView(footer);
 
         setContentView(root);
     }
 
-    void press(String key) {
+    private GradientDrawable makeBackground(
+            int backgroundColor, int borderColor) {
 
-        if (key.equals("C")) {
+        GradientDrawable shape = new GradientDrawable();
+
+        shape.setColor(backgroundColor);
+        shape.setCornerRadius(18);
+        shape.setStroke(3, borderColor);
+
+        return shape;
+    }
+
+    private boolean isOperator(String text) {
+        return text.equals("+")
+                || text.equals("-")
+                || text.equals("×")
+                || text.equals("÷")
+                || text.equals("=");
+                }
+
+    private void handleClick(String value) {
+
+        if (value.matches("[0-9]")) {
+
+            if (newNumber) {
+                current = value;
+                newNumber = false;
+            } else {
+                current += value;
+            }
+
+            display.setText(current);
+        }
+
+        else if (value.equals("C")) {
+
             current = "";
             operator = "";
-            first = 0;
+            firstNumber = 0;
+            newNumber = true;
             display.setText("0");
-            return;
         }
 
-        if (key.equals("DEL")) {
-            if (!current.isEmpty()) {
-                current = current.substring(0, current.length() - 1);
-            }
-            display.setText(current.isEmpty() ? "0" : current);
-            return;
-        }
+        else if (value.equals("=")) {
 
-        if (key.equals("=")) {
-            calculate();
-            return;
-        }
+            if (!operator.isEmpty() && !current.isEmpty()) {
 
-        if (key.equals("%")) {
-            if (!current.isEmpty()) {
-                double value = Double.parseDouble(current) / 100;
-                current = String.valueOf(value);
-                display.setText(current);
-            }
-            return;
-        }
+                double secondNumber =
+                        Double.parseDouble(current);
 
-        if ("+−×÷".contains(key)) {
-            if (!current.isEmpty()) {
-                first = Double.parseDouble(current);
-                operator = key;
-                current = "";
-            }
-            return;
-        }
+                double result = 0;
 
-        if (key.equals(".")) {
-            if (current.contains(".")) return;
-            if (current.isEmpty()) current = "0";
-        }
+                switch (operator) {
+                    case "+":
+                        result = firstNumber + secondNumber;
+                        break;
 
-        current += key;
-        display.setText(current);
-    }
+                    case "-":
+                        result = firstNumber - secondNumber;
+                        break;
 
-    void calculate() {
-        if (current.isEmpty() || operator.isEmpty()) return;
+                    case "×":
+                        result = firstNumber * secondNumber;
+                        break;
 
-        double second = Double.parseDouble(current);
-        double result = 0;
-
-        switch (operator) {
-            case "+": result = first + second; break;
-            case "−": result = first - second; break;
-            case "×": result = first * second; break;
-            case "÷":
-                if (second == 0) {
-                    display.setText("Error");
-                    current = "";
-                    operator = "";
-                    return;
+                    case "÷":
+                        if (secondNumber == 0) {
+                            display.setText("لا يمكن القسمة على صفر");
+                            current = "";
+                            operator = "";
+                            newNumber = true;
+                            return;
+                        }
+                        result = firstNumber / secondNumber;
+                        break;
                 }
-                result = first / second;
-                break;
+
+                current = formatResult(result);
+                display.setText(current);
+
+                operator = "";
+                newNumber = true;
+            }
         }
 
-        current = String.valueOf(result);
-        display.setText(current);
-        operator = "";
+        else if (isOperator(value)) {
+
+            if (!current.isEmpty()) {
+                firstNumber = Double.parseDouble(current);
+                operator = value;
+                newNumber = true;
+            }
+        }
     }
-          }
+
+    private String formatResult(double result) {
+
+        if (result == (long) result) {
+            return String.valueOf((long) result);
+        }
+
+        return String.valueOf(result);
+    }
+                                       }
